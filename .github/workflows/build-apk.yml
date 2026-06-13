@@ -41,5 +41,6 @@ jobs:
           files: android-app/app/build/outputs/apk/debug/airmini-sync-${{ github.ref_name }}-debug.apk
           draft: false
           prerelease: true
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
