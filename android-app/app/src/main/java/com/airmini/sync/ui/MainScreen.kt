@@ -112,19 +112,48 @@ fun MainScreen(
             }
         }
 
-        if (state.dateRangePreset == "Custom" && state.customStartDateMillis != null && state.customEndDateMillis != null) {
-            val startStr = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
+        val displayRange = remember(state.dateRangePreset, state.customStartDateMillis, state.customEndDateMillis) {
+            val now = java.time.Instant.now()
+            val formatter = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
                 .withZone(java.time.ZoneOffset.UTC)
-                .format(java.time.Instant.ofEpochMilli(state.customStartDateMillis))
-            val endStr = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
-                .withZone(java.time.ZoneOffset.UTC)
-                .format(java.time.Instant.ofEpochMilli(state.customEndDateMillis))
-            Text(
-                text = "Selected Range: $startStr to $endStr",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
-            )
+            val start: java.time.Instant
+            val end: java.time.Instant
+            when (state.dateRangePreset) {
+                "Last Week" -> {
+                    start = now.minus(java.time.Duration.ofDays(7))
+                    end = now
+                }
+                "Last Month" -> {
+                    start = now.minus(java.time.Duration.ofDays(30))
+                    end = now
+                }
+                "Last Year" -> {
+                    start = now.minus(java.time.Duration.ofDays(365))
+                    end = now
+                }
+                "Custom" -> {
+                    val s = state.customStartDateMillis
+                    val e = state.customEndDateMillis
+                    if (s != null && e != null) {
+                        start = java.time.Instant.ofEpochMilli(s)
+                        end = java.time.Instant.ofEpochMilli(e)
+                    } else {
+                        return@remember "Tap Custom to select range"
+                    }
+                }
+                else -> {
+                    start = now.minus(java.time.Duration.ofDays(7))
+                    end = now
+                }
+            }
+            "Selected Range: ${formatter.format(start)} to ${formatter.format(end)}"
         }
+
+        Text(
+            text = displayRange,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
 
         if (showCustomPicker) {
             val dateRangePickerState = rememberDateRangePickerState()

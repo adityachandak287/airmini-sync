@@ -22,7 +22,7 @@ data class UiState(
     val result: JSONObject? = null,
     val stats: TherapyStats? = null,
     val error: String? = null,
-    val dateRangePreset: String = "Last Week",
+    val dateRangePreset: String = "Last Year",
     val customStartDateMillis: Long? = null,
     val customEndDateMillis: Long? = null,
 )
