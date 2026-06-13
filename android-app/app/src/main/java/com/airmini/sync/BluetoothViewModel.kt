@@ -163,8 +163,11 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 client.establishSession(pin)
 
                 val (startInstant, endInstant) = getQueryRange()
-                val fromTimeStr = startInstant.toString()
-                val toTimeStr = endInstant.toString()
+                val formatter = java.time.format.DateTimeFormatter
+                    .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                    .withZone(java.time.ZoneOffset.UTC)
+                val fromTimeStr = formatter.format(startInstant)
+                val toTimeStr = formatter.format(endInstant)
 
                 log("Downloading telemetry since $fromTimeStr…")
                 val latestTimestamps = DATA_IDS.associateWith { fromTimeStr }
