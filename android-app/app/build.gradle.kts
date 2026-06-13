@@ -4,6 +4,20 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val gitVersion = providers.exec {
+    commandLine("git", "describe", "--tags", "--always", "--dirty")
+    isIgnoreExitValue = true
+}.standardOutput.asText.map { it.trim() }
+
+fun getAppVersion(): String {
+    val envVersion = System.getenv("APP_VERSION")
+    if (!envVersion.isNullOrEmpty()) {
+        return envVersion
+    }
+    val ver = gitVersion.getOrElse("")
+    return if (ver.isEmpty()) "1.0-dev" else ver
+}
+
 android {
     namespace = "com.airmini.sync"
     compileSdk = 34
@@ -13,7 +27,7 @@ android {
         minSdk = 31
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = getAppVersion()
         manifestPlaceholders["appName"] = "AirMini Sync"
         resourceConfigurations.add("en")
     }
@@ -29,6 +43,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     signingConfigs {
