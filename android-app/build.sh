@@ -56,7 +56,21 @@ APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
 
 if [[ "${1:-}" == "--release" ]]; then
   TASK="assembleRelease"
-  APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+  # Prompt securely for keystore password
+  echo "Release build requested. Signing requires Keystore password."
+  read -s -p "Enter Keystore Password: " KEYSTORE_PW
+  echo ""
+  
+  if [[ -n "$KEYSTORE_PW" ]]; then
+    export KEYSTORE_PASSWORD="$KEYSTORE_PW"
+    export KEY_PASSWORD="$KEYSTORE_PW"
+
+    echo "input=$KEYSTORE_PW"
+    APK_PATH="app/build/outputs/apk/release/app-release.apk"
+  else
+    echo "Error: Keystore password is required to sign the release APK."
+    exit 1
+  fi
 fi
 
 # ── Run ───────────────────────────────────────────────────────────────────────

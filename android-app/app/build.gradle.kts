@@ -14,6 +14,7 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        manifestPlaceholders["appName"] = "AirMini Sync"
     }
 
     compileOptions {
@@ -31,28 +32,33 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystorePath = System.getenv("KEYSTORE_PATH") ?: "release.keystore"
-            val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            val alias = System.getenv("KEY_ALIAS") ?: "airmini-sync-release-key"
-            val keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            val keystorePath = System.getenv("KEYSTORE_PATH") ?: "../release.keystore"
+            val keystorePass = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            val aliasName = System.getenv("KEY_ALIAS") ?: "airmini-sync-release-key"
+            val aliasPass = System.getenv("KEY_PASSWORD") ?: ""
 
             val keystoreFile = file(keystorePath)
-            if (keystoreFile.exists() && keystorePassword.isNotEmpty() && keyPassword.isNotEmpty()) {
+            if (keystoreFile.exists() && keystorePass.isNotEmpty() && aliasPass.isNotEmpty()) {
                 storeFile = keystoreFile
-                storePassword = keystorePassword
-                keyAlias = alias
-                keyPassword = keyPassword
+                storePassword = keystorePass
+                keyAlias = aliasName
+                keyPassword = aliasPass
             }
         }
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appName"] = "AirMini Sync Debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            manifestPlaceholders["appName"] = "AirMini Sync"
             val rc = signingConfigs.findByName("release")
             if (rc != null && rc.storeFile != null) {
                 signingConfig = rc

@@ -98,7 +98,7 @@ class MainActivity : ComponentActivity() {
             cacheFile.writeText(jsonData)
             val uri = androidx.core.content.FileProvider.getUriForFile(
                 this,
-                "com.airmini.sync.fileprovider",
+                "${packageName}.fileprovider",
                 cacheFile
             )
             val intent = Intent(Intent.ACTION_SEND).apply {

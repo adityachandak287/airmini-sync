@@ -10,7 +10,7 @@
         android:required="true" />
 
     <application
-        android:label="@string/app_name"
+        android:label="${appName}"
         android:theme="@style/Theme.AirMiniSync">
 
         <activity
@@ -25,7 +25,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.airmini.sync.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
