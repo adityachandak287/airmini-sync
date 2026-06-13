@@ -175,7 +175,8 @@ fun MainScreen(
             },
             enabled = state.selectedDevice != null &&
                       pin.length == 4 &&
-                      state.status == SyncStatus.Idle &&
+                      state.status != SyncStatus.Connecting &&
+                      state.status != SyncStatus.Syncing &&
                       (state.dateRangePreset != "Custom" || (state.customStartDateMillis != null && state.customEndDateMillis != null)),
             modifier = Modifier.fillMaxWidth(),
         ) {
