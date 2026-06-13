@@ -23,6 +23,32 @@ if [[ -z "$JAVA_HOME" ]] || ! "$JAVA_HOME/bin/java" -version 2>&1 | grep -q 'ver
 fi
 export JAVA_HOME
 
+# ── Android SDK detection ─────────────────────────────────────────────────────
+
+# Use ANDROID_HOME if already set in the environment, otherwise check the
+# standard macOS location written by Android Studio / sdkmanager.
+if [[ -z "${ANDROID_HOME:-}" ]]; then
+  ANDROID_HOME="$HOME/Library/Android/sdk"
+fi
+
+if [[ ! -d "$ANDROID_HOME" ]]; then
+  echo "Error: Android SDK not found at $ANDROID_HOME"
+  echo ""
+  echo "Install it with:"
+  echo "  brew install --cask android-commandlinetools"
+  echo "  mkdir -p \$HOME/Library/Android/sdk"
+  echo "  sdkmanager --sdk_root=\$HOME/Library/Android/sdk --licenses"
+  echo "  sdkmanager --sdk_root=\$HOME/Library/Android/sdk \"platforms;android-35\" \"build-tools;35.0.0\""
+  exit 1
+fi
+export ANDROID_HOME
+
+# Gradle reads local.properties for sdk.dir — generate it if missing or stale.
+# This file is gitignored (machine-specific).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_PROPS="$SCRIPT_DIR/local.properties"
+echo "sdk.dir=$ANDROID_HOME" > "$LOCAL_PROPS"
+
 # ── Build target ──────────────────────────────────────────────────────────────
 
 TASK="assembleDebug"
@@ -35,11 +61,13 @@ fi
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "Building: $TASK (JAVA_HOME=$JAVA_HOME)"
+echo "Building: $TASK"
+echo "  JAVA_HOME:    $JAVA_HOME"
+echo "  ANDROID_HOME: $ANDROID_HOME"
 ./gradlew "$TASK"
+
 
 # ── Output ────────────────────────────────────────────────────────────────────
 
