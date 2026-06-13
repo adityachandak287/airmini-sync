@@ -112,8 +112,10 @@ fun MainScreen(
 
         // ── Log output ───────────────────────────────────────────────────────
         if (state.logs.isNotEmpty()) {
+            val isDark = androidx.compose.foundation.isSystemInDarkTheme()
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = if (isDark) androidx.compose.ui.graphics.Color(0xFF121212) else androidx.compose.ui.graphics.Color(0xFFF5F5F5),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,12 +123,17 @@ fun MainScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(10.dp)
+                        .padding(12.dp)
                         .verticalScroll(logScrollState),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     state.logs.forEach { line ->
-                        Text(text = line, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            text = line,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = if (isDark) androidx.compose.ui.graphics.Color(0xFFE0E0E0) else androidx.compose.ui.graphics.Color(0xFF212121)
+                        )
                     }
                 }
             }

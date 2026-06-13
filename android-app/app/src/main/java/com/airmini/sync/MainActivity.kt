@@ -61,18 +61,29 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val state by viewModel.state.collectAsState()
-            MaterialTheme {
-                MainScreen(
-                    state = state,
-                    onDeviceSelected = viewModel::selectDevice,
-                    onSyncClicked = viewModel::startSync,
-                    onShareClicked = {
-                        val resultJson = state.result?.toString(2)
-                        if (resultJson != null) {
-                            shareSleepData(resultJson)
+            val darkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+            val colorScheme = if (darkTheme) {
+                androidx.compose.material3.darkColorScheme()
+            } else {
+                androidx.compose.material3.lightColorScheme()
+            }
+            MaterialTheme(colorScheme = colorScheme) {
+                androidx.compose.material3.Surface(
+                    modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainScreen(
+                        state = state,
+                        onDeviceSelected = viewModel::selectDevice,
+                        onSyncClicked = viewModel::startSync,
+                        onShareClicked = {
+                            val resultJson = state.result?.toString(2)
+                            if (resultJson != null) {
+                                shareSleepData(resultJson)
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
