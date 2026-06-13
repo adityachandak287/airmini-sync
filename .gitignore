@@ -5,6 +5,7 @@ latest_sync.json
 
 # Android build artifacts
 android-app/.gradle/
+android-app/.kotlin/
 android-app/build/
 android-app/app/build/
 android-app/local.properties
