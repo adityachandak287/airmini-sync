@@ -13,9 +13,11 @@ set -euo pipefail
 
 # ── JDK 21 selection ─────────────────────────────────────────────────────────
 
+# Note: java_home -v treats the version as a minimum (>= 21), not an exact match.
+# Verify the returned JDK is actually version 21.x by checking the binary directly.
 JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null || true)
-if [[ -z "$JAVA_HOME" ]]; then
-  echo "Error: JDK 21 not found."
+if [[ -z "$JAVA_HOME" ]] || ! "$JAVA_HOME/bin/java" -version 2>&1 | grep -q 'version "21\.'; then
+  echo "Error: JDK 21 not found (java_home -v returns the minimum version, not an exact match)."
   echo "Install it with: brew install --cask temurin@21"
   exit 1
 fi
