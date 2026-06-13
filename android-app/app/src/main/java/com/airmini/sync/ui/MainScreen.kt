@@ -28,6 +28,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.airmini.sync.SyncStatus
 import com.airmini.sync.UiState
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.TextButton
 
 /**
  * Main screen composable.
@@ -35,6 +39,7 @@ import com.airmini.sync.UiState
  * Contains: device picker, PIN input, sync button, status/log output, and result summary.
  * No protocol logic lives here — everything is driven through callbacks into the ViewModel.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Suppress("MissingPermission") // Permission checked in MainActivity before this is shown.
 @Composable
 fun MainScreen(
@@ -42,10 +47,13 @@ fun MainScreen(
     onDeviceSelected: (BluetoothDevice) -> Unit,
     onSyncClicked: (pin: String) -> Unit,
     onShareClicked: () -> Unit,
+    onDateRangePresetSelected: (String) -> Unit,
+    onCustomDateRangeSelected: (startMillis: Long?, endMillis: Long?) -> Unit,
 ) {
     var pin by remember { mutableStateOf("") }
     val logScrollState = rememberScrollState()
     val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    var showCustomPicker by remember { mutableStateOf(false) }
 
     // Auto-scroll log to bottom when new lines arrive.
     LaunchedEffect(state.logs.size) {
@@ -83,6 +91,72 @@ fun MainScreen(
             }
         }
 
+        // ── Period Selection ──────────────────────────────────────────────────
+        Text(text = "Report Period:", style = MaterialTheme.typography.labelLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val presets = listOf("Last Week", "Last Month", "Last Year", "Custom")
+            presets.forEach { preset ->
+                FilterChip(
+                    selected = state.dateRangePreset == preset,
+                    onClick = {
+                        onDateRangePresetSelected(preset)
+                        if (preset == "Custom") {
+                            showCustomPicker = true
+                        }
+                    },
+                    label = { Text(preset) }
+                )
+            }
+        }
+
+        if (state.dateRangePreset == "Custom" && state.customStartDateMillis != null && state.customEndDateMillis != null) {
+            val startStr = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
+                .withZone(java.time.ZoneOffset.UTC)
+                .format(java.time.Instant.ofEpochMilli(state.customStartDateMillis))
+            val endStr = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE
+                .withZone(java.time.ZoneOffset.UTC)
+                .format(java.time.Instant.ofEpochMilli(state.customEndDateMillis))
+            Text(
+                text = "Selected Range: $startStr to $endStr",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (showCustomPicker) {
+            val dateRangePickerState = rememberDateRangePickerState()
+            DatePickerDialog(
+                onDismissRequest = { showCustomPicker = false },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showCustomPicker = false
+                            onCustomDateRangeSelected(
+                                dateRangePickerState.selectedStartDateMillis,
+                                dateRangePickerState.selectedEndDateMillis
+                            )
+                        },
+                        enabled = dateRangePickerState.selectedStartDateMillis != null && dateRangePickerState.selectedEndDateMillis != null
+                    ) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCustomPicker = false }) {
+                        Text("Cancel")
+                    }
+                }
+            ) {
+                DateRangePicker(
+                    state = dateRangePickerState,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
         // ── PIN input ────────────────────────────────────────────────────────
         OutlinedTextField(
             value = pin,
@@ -101,7 +175,8 @@ fun MainScreen(
             },
             enabled = state.selectedDevice != null &&
                       pin.length == 4 &&
-                      state.status == SyncStatus.Idle,
+                      state.status == SyncStatus.Idle &&
+                      (state.dateRangePreset != "Custom" || (state.customStartDateMillis != null && state.customEndDateMillis != null)),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(

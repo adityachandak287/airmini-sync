@@ -8,5 +8,5 @@ We will implement a date range filter feature with presets (Last Week, Last Mont
 - `[x]` Update `BluetoothViewModel.startSync(pin)` to calculate `fromTime` and `toTime` ISO-8601 timestamps based on the selected range.
 - `[x]` Pass the computed `fromTime` into `AirMiniClient.downloadData(latestTimestamps)`.
 - `[x]` Post-process the downloaded JSON data to filter out records outside `[fromTime, toTime]` before computing stats and exporting.
-- `[ ]` Implement the period selection row and custom date range picker dialog in `MainScreen.kt`.
-- `[ ]` Compile and verify the build.
+- `[x]` Implement the period selection row and custom date range picker dialog in `MainScreen.kt`.
+- `[x]` Compile and verify the build.

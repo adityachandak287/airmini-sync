@@ -83,7 +83,9 @@ class MainActivity : ComponentActivity() {
                             if (resultJson != null) {
                                 shareSleepData(resultJson)
                             }
-                        }
+                        },
+                        onDateRangePresetSelected = viewModel::setDateRangePreset,
+                        onCustomDateRangeSelected = viewModel::setCustomDateRange,
                     )
                 }
             }
