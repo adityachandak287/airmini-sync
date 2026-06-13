@@ -10,7 +10,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Instant
 
 data class UiState(
     val status: SyncStatus = SyncStatus.Idle,
@@ -65,6 +67,80 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         _state.update { it.copy(selectedDevice = device) }
     }
 
+    private fun getQueryRange(): Pair<Instant, Instant> {
+        val now = Instant.now()
+        val currentState = _state.value
+        return when (currentState.dateRangePreset) {
+            "Last Week" -> Pair(now.minus(java.time.Duration.ofDays(7)), now)
+            "Last Month" -> Pair(now.minus(java.time.Duration.ofDays(30)), now)
+            "Last Year" -> Pair(now.minus(java.time.Duration.ofDays(365)), now)
+            "Custom" -> {
+                val start = currentState.customStartDateMillis?.let { Instant.ofEpochMilli(it) } ?: now.minus(java.time.Duration.ofDays(7))
+                val end = currentState.customEndDateMillis?.let { Instant.ofEpochMilli(it).plus(java.time.Duration.ofDays(1)).minusMillis(1) } ?: now
+                Pair(start, end)
+            }
+            else -> Pair(now.minus(java.time.Duration.ofDays(7)), now)
+        }
+    }
+
+    private fun filterDownloadedData(data: JSONObject, start: Instant, end: Instant): JSONObject {
+        val filtered = JSONObject()
+        val keys = data.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val array = data.optJSONArray(key) ?: continue
+            val filteredArray = JSONArray()
+
+            for (i in 0 until array.length()) {
+                val item = array.getJSONObject(i)
+                when (key) {
+                    "UsageEvents-TherapyStatusEvent", "TherapyEvents-RespiratoryEvent" -> {
+                        val events = item.optJSONArray("events")
+                        if (events != null) {
+                            val filteredEvents = JSONArray()
+                            for (j in 0 until events.length()) {
+                                val ev = events.getJSONObject(j)
+                                val timeStr = ev.optString("time")
+                                try {
+                                    val t = Instant.parse(timeStr)
+                                    if (!t.isBefore(start) && !t.isAfter(end)) {
+                                        filteredEvents.put(ev)
+                                    }
+                                } catch (e: Exception) {
+                                    filteredEvents.put(ev)
+                                }
+                            }
+                            if (filteredEvents.length() > 0) {
+                                val newItem = JSONObject(item.toString())
+                                newItem.put("events", filteredEvents)
+                                filteredArray.put(newItem)
+                            }
+                        }
+                    }
+                    "TherapyOneMinutePeriodic-InspiratoryPressure", "TherapyOneMinutePeriodic-Leak" -> {
+                        val periodic = item.optJSONObject("periodic")
+                        if (periodic != null) {
+                            val timeStr = periodic.optString("startTime")
+                            try {
+                                val t = Instant.parse(timeStr)
+                                if (!t.isBefore(start) && !t.isAfter(end)) {
+                                    filteredArray.put(item)
+                                }
+                            } catch (e: Exception) {
+                                filteredArray.put(item)
+                            }
+                        }
+                    }
+                    else -> {
+                        filteredArray.put(item)
+                    }
+                }
+            }
+            filtered.put(key, filteredArray)
+        }
+        return filtered
+    }
+
     @SuppressLint("MissingPermission")
     fun startSync(pin: String) {
         val device = _state.value.selectedDevice ?: return
@@ -86,9 +162,17 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 _state.update { it.copy(status = SyncStatus.Syncing) }
                 client.establishSession(pin)
 
-                log("Downloading telemetry data…")
-                val result = client.downloadData()
+                val (startInstant, endInstant) = getQueryRange()
+                val fromTimeStr = startInstant.toString()
+                val toTimeStr = endInstant.toString()
+
+                log("Downloading telemetry since $fromTimeStr…")
+                val latestTimestamps = DATA_IDS.associateWith { fromTimeStr }
+                val rawResult = client.downloadData(latestTimestamps)
                 client.disconnect()
+
+                log("Filtering data up to $toTimeStr…")
+                val result = filterDownloadedData(rawResult, startInstant, endInstant)
 
                 val recordCount = DATA_IDS.sumOf {
                     result.optJSONArray(it)?.length() ?: 0
