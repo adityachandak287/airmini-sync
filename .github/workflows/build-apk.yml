@@ -41,7 +41,7 @@ jobs:
       - name: Build Signed Release APK
         run: |
           cd android-app
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease -Dorg.gradle.jvmargs="-Xmx4096m -XX:+UseG1GC"
         env:
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}

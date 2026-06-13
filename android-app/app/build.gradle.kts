@@ -15,6 +15,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         manifestPlaceholders["appName"] = "AirMini Sync"
+        resourceConfigurations.add("en")
     }
 
     compileOptions {
