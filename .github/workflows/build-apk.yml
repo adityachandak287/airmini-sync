@@ -23,24 +23,40 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > android-app/release.keystore
+
       - name: Grant execute permission for gradlew
         run: chmod +x android-app/gradlew
 
-      - name: Build Debug APK
+      - name: Build Signed Release APK
         run: |
           cd android-app
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Rename APK
         run: |
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk android-app/app/build/outputs/apk/debug/airmini-sync-${{ github.ref_name }}-debug.apk
+          cp android-app/app/build/outputs/apk/release/app-release.apk android-app/app/build/outputs/apk/release/airmini-sync-${{ github.ref_name }}.apk
+
+      - name: Determine if Prerelease
+        id: prerelease_check
+        run: |
+          if [[ "${{ github.ref_name }}" == *-* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: android-app/app/build/outputs/apk/debug/airmini-sync-${{ github.ref_name }}-debug.apk
+          files: android-app/app/build/outputs/apk/release/airmini-sync-${{ github.ref_name }}.apk
           draft: false
-          prerelease: true
+          prerelease: ${{ steps.prerelease_check.outputs.is_prerelease }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
