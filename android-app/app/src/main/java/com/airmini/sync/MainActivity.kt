@@ -66,12 +66,42 @@ class MainActivity : ComponentActivity() {
                     state = state,
                     onDeviceSelected = viewModel::selectDevice,
                     onSyncClicked = viewModel::startSync,
+                    onShareClicked = {
+                        val resultJson = state.result?.toString(2)
+                        if (resultJson != null) {
+                            shareSleepData(resultJson)
+                        }
+                    }
                 )
             }
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun shareSleepData(jsonData: String) {
+        runCatching {
+            val cacheFile = java.io.File(cacheDir, "sleep_data.json")
+            cacheFile.writeText(jsonData)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                this,
+                "com.airmini.sync.fileprovider",
+                cacheFile
+            )
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(intent, "Share Sleep Data"))
+        }.onFailure { e ->
+            android.widget.Toast.makeText(
+                this,
+                "Error sharing file: ${e.message}",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     @Suppress("MissingPermission") // Guarded by permissionLauncher above.
     private fun ensureBluetoothEnabled() {

@@ -41,6 +41,7 @@ fun MainScreen(
     state: UiState,
     onDeviceSelected: (BluetoothDevice) -> Unit,
     onSyncClicked: (pin: String) -> Unit,
+    onShareClicked: () -> Unit,
 ) {
     var pin by remember { mutableStateOf("") }
     val logScrollState = rememberScrollState()
@@ -133,11 +134,20 @@ fun MainScreen(
 
         // ── Result summary ───────────────────────────────────────────────────
         if (state.status == SyncStatus.Done && state.result != null) {
-            Text(
-                text = "✓ Sync complete",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "✓ Sync complete",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Button(onClick = onShareClicked) {
+                    Text("Share Data")
+                }
+            }
         }
 
         if (state.status == SyncStatus.Error && state.error != null) {
