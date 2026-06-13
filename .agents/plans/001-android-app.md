@@ -181,6 +181,17 @@ interface Transport {
 `AirMiniClient` accepts any `Transport` implementation, making it testable outside
 Android.
 
+> **Protocol rule — `pullTxData()` loop (Rule 4):** After every `decodePacket()` call
+> during the handshake phase, `AirMiniClient` must call `crypto.pullTxData()` and write
+> any non-null result back to the transport immediately. The JNI library internally queues
+> outbound frames (e.g. `ConfirmKeyExchange`) that must be flushed this way to advance
+> the cryptographic state machine. Omitting this will cause the handshake to stall.
+>
+> **Protocol rule — `GetLoggedData` two-phase stream (Rule 5):** The initial response
+> to `GetLoggedData` is a synchronous registration acknowledgment containing `logStreamId`.
+> Subsequent data arrives as `LoggedData` notification packets. Loop-read and match on
+> `logStreamId` until a batch arrives with `"complete": true`.
+
 ### `AirMiniCrypto`
 - Thin Kotlin wrapper around `FigWrapper` JNI calls
 - Exposes `encodePacket(json: String): ByteArray` and `decodePacket(bytes: ByteArray): String?`
@@ -219,13 +230,17 @@ Trigger: push of a `v*` tag.
 
 Steps:
 1. `actions/checkout@v4`
-2. `actions/setup-java@v4` — Temurin JDK 17
-3. `chmod +x android-app/gradlew`
-4. `./gradlew assembleRelease`
-5. Upload `app-release-unsigned.apk` to GitHub Release via `softprops/action-gh-release@v2`
+2. `actions/setup-java@v4` — Temurin JDK 17, with `cache: gradle`
+3. Android SDK — `ubuntu-latest` runners have the Android SDK pre-installed at
+   `$ANDROID_HOME`. No explicit SDK install step is needed. AGP reads `ANDROID_HOME`
+   automatically; `local.properties` is not required in CI.
+4. `chmod +x android-app/gradlew`
+5. `cd android-app && ./gradlew assembleRelease`
+6. Upload `app/build/outputs/apk/release/app-release-unsigned.apk` to GitHub Release
+   via `softprops/action-gh-release@v2`
 
-Signed release builds are deferred; debug-signed or unsigned APKs are sufficient for
-internal distribution from the Releases page.
+Signed release builds are deferred; unsigned APKs are sufficient for internal
+distribution from the Releases page.
 
 ---
 
@@ -250,9 +265,7 @@ paths remain valid.
 
 - [x] `libfiglib.so` ABI — arm64-v8a only. Physical device testing; no emulator needed.
 - [x] Package namespace — resolved. See Package Namespace Decision section above.
-- [ ] The existing `android-app/` directory contains Groovy build files and Java stubs
-  from the previous planning session. These must be removed before the Kotlin
-  implementation is scaffolded:
+- [ ] **Remove old Groovy/Java files** from `android-app/` before scaffolding Kotlin:
   - `android-app/settings.gradle`
   - `android-app/build.gradle`
   - `android-app/app/build.gradle`
@@ -260,3 +273,30 @@ paths remain valid.
   - `android-app/app/src/main/res/xml/file_paths.xml`
   - `android-app/app/src/main/java/com/resmed/mon/fig/FigWrapper.java`
   - `android-app/app/src/main/java/com/resmed/mon/fig/DeviceSync.java`
+- [ ] **Update `.gitignore`** — add Android build artifact entries:
+  ```
+  android-app/.gradle/
+  android-app/build/
+  android-app/app/build/
+  android-app/local.properties
+  android-app/**/*.apk
+  ```
+- [ ] **Copy `libfiglib.so`** into JNI libs directory:
+  ```bash
+  mkdir -p android-app/app/src/main/jniLibs/arm64-v8a
+  cp data/libfiglib.so android-app/app/src/main/jniLibs/arm64-v8a/libfiglib.so
+  ```
+  Note: `data/` is gitignored at the root. `android-app/app/src/main/jniLibs/` is
+  NOT gitignored and the `.so` should be committed alongside the source.
+- [ ] **Bootstrap `gradle-wrapper.jar`** — this is a binary that cannot be written by
+  an agent. After all text-based build files are in place, run once:
+  ```bash
+  cd android-app
+  gradle wrapper --gradle-version 8.7
+  ```
+  Requires Gradle installed locally (`brew install gradle`). The generated
+  `gradle-wrapper.jar` should be committed to the repo.
+- [ ] **Update `.cursorrules`** — the file currently only documents the headless ADB
+  workflow (Rules 1–6 are specific to `app_process` shell execution). Add a section
+  documenting the Android app architecture, build commands, and which rules apply
+  (Rules 1 and 2 do NOT apply to the app; Rules 3–6 remain relevant).
