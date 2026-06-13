@@ -13,7 +13,8 @@ set -euo pipefail
 
 # ── JDK 21 selection ─────────────────────────────────────────────────────────
 
-if ! JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null); then
+JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null || true)
+if [[ -z "$JAVA_HOME" ]]; then
   echo "Error: JDK 21 not found."
   echo "Install it with: brew install --cask temurin@21"
   exit 1
