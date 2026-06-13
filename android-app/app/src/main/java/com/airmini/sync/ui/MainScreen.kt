@@ -164,5 +164,14 @@ fun MainScreen(
                 color = MaterialTheme.colorScheme.error,
             )
         }
+
+        // Pushes content above to the top and dynamically places the version string at the absolute bottom
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = "AirMini Sync ${com.airmini.sync.BuildConfig.VERSION_NAME}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally)
+        )
     }
 }
