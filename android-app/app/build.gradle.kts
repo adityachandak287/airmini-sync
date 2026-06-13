@@ -28,6 +28,37 @@ android {
     buildFeatures {
         compose = true
     }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH") ?: "release.keystore"
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            val alias = System.getenv("KEY_ALIAS") ?: "airmini-sync-release-key"
+            val keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+
+            val keystoreFile = file(keystorePath)
+            if (keystoreFile.exists() && keystorePassword.isNotEmpty() && keyPassword.isNotEmpty()) {
+                storeFile = keystoreFile
+                storePassword = keystorePassword
+                keyAlias = alias
+                keyPassword = keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            val rc = signingConfigs.findByName("release")
+            if (rc != null && rc.storeFile != null) {
+                signingConfig = rc
+            }
+        }
+    }
 }
 
 dependencies {

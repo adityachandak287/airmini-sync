@@ -9,3 +9,8 @@ android-app/.kotlin/
 android-app/build/
 android-app/app/build/
 android-app/local.properties
+
+# Keystores & keys
+*.keystore
+*.jks
+
