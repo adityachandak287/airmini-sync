@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: ./prune.py <cutoff-date-YYYY-MM-DD> [input-file-path]")
-        print("Example: ./prune.py 2026-01-01 sleep_data.json")
+        print("Usage: python3 scripts/prune.py <cutoff-date-YYYY-MM-DD> [input-file-path]")
+        print("Example: python3 scripts/prune.py 2026-01-01 sleep_data.json")
         sys.exit(1)
         
     cutoff_str = sys.argv[1]

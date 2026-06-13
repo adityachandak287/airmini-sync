@@ -1,59 +1,33 @@
 # AirMini Sync Agent Rules & Context
 
-This file provides context and operational rules for AI coding assistants working in this repository. Read this before modifying the codebase or running compilation tasks.
+This file provides context and operational rules for AI coding assistants working in this repository.
 
 ---
 
 ## 1. Project Architecture
-* **Language/Platform**: Java 8 bytecode running on an Android device via `app_process` (headless shell JVM execution).
+* **Platform**: Android App (Jetpack Compose + Material 3)
 * **Communication Protocol**: Classic Bluetooth Serial Port Profile (SPP) / RFCOMM (`00001101-0000-1000-8000-00805F9B34FB`).
-* **Encryption Layer**: Handled natively by `/data/local/tmp/libfiglib.so`. High-level Java code uses JNI (`FigWrapper.java`) to encode/decode strings.
+* **Encryption Layer**: Handled natively by `libfiglib.so` loaded from `jniLibs`. High-level Kotlin code uses JNI (`FigWrapper.kt`) to encode/decode bytes.
 
 ---
 
-## 2. Key Files
-* [src/com/resmed/mon/fig/DeviceSync.java](src/com/resmed/mon/fig/DeviceSync.java): Core controller containing the RFCOMM binder sockets, pairing handshake, and telemetry download loops.
-* [src/com/resmed/mon/fig/FigWrapper.java](src/com/resmed/mon/fig/FigWrapper.java): JNI C++ library interface.
-* [run_sync.sh](run_sync.sh): Host orchestrator script that compiles Java, packages DEX, pushes to the phone, runs the process, and merges data.
-* [stats.py](stats.py): Compiles metrics and telemetry statistics from `sleep_data.json`.
-* [prune.py](prune.py): Filters and truncates historical data before a cutoff date.
+## 2. Key Files & Folders
+* [android-app/](file:///Users/aditya/projects/personal/airmini-sync/android-app): Contains the modern Compose Android application.
+* [scripts/stats.py](file:///Users/aditya/projects/personal/airmini-sync/scripts/stats.py): Compiles metrics and telemetry statistics from `sleep_data.json`.
+* [scripts/prune.py](file:///Users/aditya/projects/personal/airmini-sync/scripts/prune.py): Filters and truncates historical data before a cutoff date.
 
 ---
 
-## 3. Build & Compilation Toolchain
-To compile the Java sources for compatibility with Android's JVM:
-1. **Compilation** (Requires Android SDK `android.jar` and `json.jar` stubs in `data/`):
-   ```bash
-   javac -cp data/android.jar:data/json.jar -source 1.8 -target 1.8 src/com/resmed/mon/fig/*.java -d bin/
-   ```
-2. **DEX Packaging** (Requires R8/D8 package compiler `r8lib.jar` in `data/`):
-   ```bash
-   java -cp data/r8lib.jar com.android.tools.r8.D8 --output data/sync_v3.jar --lib data/android.jar --lib data/json.jar bin/com/resmed/mon/fig/*.class
-   ```
-3. **Push & Execution**:
-   ```bash
-   adb push data/sync_v3.jar /data/local/tmp/sync_v3.jar
-   adb shell "LD_LIBRARY_PATH=/data/local/tmp CLASSPATH=/data/local/tmp/sync_v3.jar app_process /system/bin com.resmed.mon.fig.DeviceSync <PIN>"
-   ```
+## 3. Operational Rules for Agents
 
----
+### Rule 1: JNI Package Namespace Constraint
+* The package namespace `com.resmed.mon.fig.FigWrapper` cannot be refactored because the JNI binary `libfiglib.so` expects that hardcoded path.
 
-## 4. Operational Rules for Agents
-
-### Rule 1: Maintain Java 8 Target Compatibility
-* Do **NOT** use modern Java APIs (like Java 9+ module features, `var` declarations, or complex stream modifications) in the `src/` folder. The compiler targets Java 8 (`-source 1.8 -target 1.8`) for Android runtime compatibility.
-
-### Rule 2: Shell Permission masquerading
-* When running headless via `app_process` under a `shell` user, normal Android Bluetooth APIs will fail. `DeviceSync.java` bypasses this by reflectively building an `AttributionSource` referencing `com.android.shell` (UID 2000). **Do not remove or disrupt this reflection setup.**
-
-### Rule 3: Handle JNI stdout Pollution
-* The `libfiglib.so` binary writes debug statements (like `HandleResponse`) directly to standard output (`stdout`). Any parser reading stdout must locate the first `{` byte index and slice/parse from that offset to isolate valid JSON.
-
-### Rule 4: Cryptographic Handshake State Loops
+### Rule 2: Cryptographic Handshake State Loops
 * Handshake packets (like `GetPairKey`) prompt JNI to automatically queue subsequent response frames (like `ConfirmKeyExchange`) in its internal outbound queue. The sync loop must write these transient frames (using `FigWrapper.pullTxData()`) to the socket to progress the state.
 
-### Rule 5: Streaming RPC Boundaries
+### Rule 3: Streaming RPC Boundaries
 * `GetLoggedData` returns a synchronous stream registration confirming the `logStreamId`. You must read and ignore this initial response, then loop-read incoming notifications matching that ID until a batch is flagged with `"complete": true`.
 
-### Rule 6: Git-Ignore Sleep Telemetry
+### Rule 4: Git-Ignore Sleep Telemetry
 * Under **no circumstances** should `sleep_data.json`, `new_sleep_data.json`, or `latest_sync.json` be committed to git. They are personal medical data (PII) and must remain git-ignored.
