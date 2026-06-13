@@ -18,6 +18,7 @@ data class UiState(
     val selectedDevice: BluetoothDevice? = null,
     val logs: List<String> = emptyList(),
     val result: JSONObject? = null,
+    val stats: TherapyStats? = null,
     val error: String? = null,
 )
 
@@ -82,7 +83,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                     result.optJSONArray(it)?.length() ?: 0
                 }
                 log("Done — $recordCount records across ${DATA_IDS.size} streams.")
-                _state.update { it.copy(status = SyncStatus.Done, result = result) }
+                val stats = TherapyStatsCalculator.computeStats(result)
+                _state.update { it.copy(status = SyncStatus.Done, result = result, stats = stats) }
             }.onFailure { e ->
                 val msg = e.message ?: e.javaClass.simpleName
                 log("Error: $msg")

@@ -155,7 +155,7 @@ def main():
         # 95th percentile pressure (common CPAP stat)
         sorted_p = sorted(pressure_values)
         p95 = sorted_p[int(len(sorted_p) * 0.95)]
-        print(f"  - Pressure (cmH2O): Min={min_p:.1f}, Avg={avg_p:.1f}, 95%={p95:.1f}, Max={max_p:.1f}")
+        print(f"  - Pressure (cmH2O): Min={min_p:.1f}, Avg={avg_p:.1f}, p95={p95:.1f}, Max={max_p:.1f}")
     else:
         print("  - Pressure (cmH2O): No data")
 
@@ -165,7 +165,7 @@ def main():
         min_l = min(leak_values)
         sorted_l = sorted(leak_values)
         l95 = sorted_l[int(len(sorted_l) * 0.95)]
-        print(f"  - Leak Rate (L/min): Min={min_l:.2f}, Avg={avg_l:.2f}, 95%={l95:.2f}, Max={max_l:.2f}")
+        print(f"  - Leak Rate (L/min): Min={min_l:.2f}, Avg={avg_l:.2f}, p95={l95:.2f}, Max={max_l:.2f}")
     else:
         print("  - Leak Rate (L/min): No data")
     print("==================================================")
