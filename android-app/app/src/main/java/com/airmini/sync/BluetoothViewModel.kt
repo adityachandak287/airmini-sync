@@ -20,6 +20,9 @@ data class UiState(
     val result: JSONObject? = null,
     val stats: TherapyStats? = null,
     val error: String? = null,
+    val dateRangePreset: String = "Last Week",
+    val customStartDateMillis: Long? = null,
+    val customEndDateMillis: Long? = null,
 )
 
 enum class SyncStatus { Idle, Connecting, Syncing, Done, Error }
@@ -35,6 +38,14 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state
+
+    fun setDateRangePreset(preset: String) {
+        _state.update { it.copy(dateRangePreset = preset) }
+    }
+
+    fun setCustomDateRange(startMillis: Long?, endMillis: Long?) {
+        _state.update { it.copy(customStartDateMillis = startMillis, customEndDateMillis = endMillis) }
+    }
 
     @SuppressLint("MissingPermission")
     fun loadBondedDevices() {
