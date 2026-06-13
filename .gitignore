@@ -2,3 +2,9 @@ data/
 sleep_data.json
 new_sleep_data.json
 latest_sync.json
+
+# Android build artifacts
+android-app/.gradle/
+android-app/build/
+android-app/app/build/
+android-app/local.properties

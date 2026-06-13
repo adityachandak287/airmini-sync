@@ -1,0 +1,4 @@
+<resources>
+    <!-- Window theme: no action bar; Compose provides the full UI surface. -->
+    <style name="Theme.AirMiniSync" parent="android:Theme.Material.NoActionBar" />
+</resources>
