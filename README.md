@@ -2,6 +2,55 @@
 
 We have transitioned the Bluetooth connection logic to run directly on your Android phone. This completely bypasses macOS RFCOMM virtual serial port issues.
 
+## Sync Architecture & Data Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Mac as Host Mac
+    participant Phone as Android Phone (shell/app_process)
+    participant JNI as figlib (Native C++)
+    participant AirMini as AirMini CPAP
+
+    Note over Mac, Phone: Setup & Compilation
+    Mac->>Phone: Compile, package, & push sync_v3.jar
+    Mac->>Phone: Push latest_sync.json (incremental timestamps)
+    Mac->>Phone: Force-close official AirMini app
+
+    Note over Phone, AirMini: Bluetooth RFCOMM Connection
+    Phone->>Phone: Query System Services & Bind IBluetooth
+    Phone->>AirMini: Connect RFCOMM SPP Socket
+    AirMini-->>Phone: Established (32-byte socket handshake)
+
+    Note over Phone, AirMini: Authenticated Handshake (DH Exchange)
+    Phone->>JNI: GetPairKey (PIN)
+    JNI->>Phone: Formatted StartKeyExchange packet
+    Phone->>AirMini: Send StartKeyExchange
+    AirMini-->>Phone: Return StartKeyExchange Response (Public Key + Salt)
+    Phone->>JNI: nativeDecode(Response)
+    JNI->>JNI: Compute DH Shared Secret & Session Key
+    JNI-->>Phone: ConfirmKeyExchange packet queued
+    Phone->>AirMini: Send ConfirmKeyExchange
+    AirMini-->>Phone: Handshake Success Confirmation
+
+    Note over Phone, AirMini: Decrypted Telemetry Sync
+    loop For each Data Stream ID
+        Phone->>JNI: GetLoggedData (since fromTime)
+        JNI-->>Phone: Encrypted Request Packet
+        Phone->>AirMini: Send GetLoggedData
+        loop Until Stream marked Complete
+            AirMini-->>Phone: Stream Encrypted Data Chunks
+            Phone->>JNI: nativeDecode(Chunk)
+            JNI-->>Phone: Callback with Decrypted JSON String
+        end
+    end
+
+    Note over Phone, Mac: Local Merging & Saving
+    Phone-->>Mac: Pipe Decrypted JSON to stdout
+    Mac->>Mac: Strip native JNI logs ("HandleResponse")
+    Mac->>Mac: Merge & Deduplicate with sleep_data.json
+```
+
 ---
 
 ## How it works
